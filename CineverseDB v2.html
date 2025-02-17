@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineVerseDB - Movie Database</title>
+    <style>
+        :root {
+            --primary: #1892f5;
+            --dark: #0a0a0a;
+            --gray: #202020;
+            --text: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--dark);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        header {
+            background: linear-gradient(to bottom, #000000dd, #00000000);
+            padding: 1.5rem;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+            text-shadow: 0 0 10px rgba(245, 197, 24, 0.5);
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .search-bar {
+            padding: 0.8rem 1.2rem;
+            width: 300px;
+            border-radius: 25px;
+            border: none;
+            background: var(--gray);
+            color: white;
+            transition: all 0.3s;
+        }
+
+        .search-bar:focus {
+            outline: 2px solid var(--primary);
+            box-shadow: 0 0 15px rgba(245, 197, 24, 0.3);
+        }
+
+        .sort-filter {
+            padding: 0.8rem;
+            border-radius: 25px;
+            background: var(--gray);
+            color: white;
+            border: none;
+        }
+
+        .hero {
+            height: 70vh;
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)),
+                        url('https://source.unsplash.com/random/1920x1080/?movie-theater');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            padding: 2rem;
+            margin-top: 80px;
+        }
+
+        .hero-content {
+            max-width: 600px;
+        }
+
+        .hero-title {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        .container {
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .movie-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 2rem;
+            padding: 1rem 0;
+        }
+
+        .movie-card {
+            background: var(--gray);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+
+        .movie-poster {
+            width: 100%;
+            height: 330px;
+            object-fit: cover;
+            border-bottom: 3px solid var(--primary);
+        }
+
+        .movie-info {
+            padding: 1rem;
+        }
+
+        .movie-title {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .movie-rating {
+            color: var(--primary);
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .movie-year {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .movie-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: var(--dark);
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        footer {
+            background: var(--gray);
+            padding: 2rem;
+            margin-top: 3rem;
+            text-align: center;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+        }
+
+        .modal-content {
+            background: var(--gray);
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .movie-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+            
+            .hero-title {
+                font-size: 2rem;
+            }
+            
+            .search-bar {
+                width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">CineVerseDB</div>
+        <div class="controls">
+            <select class="sort-filter" id="sort">
+                <option value="rating">Sort by Rating</option>
+                <option value="title">Sort by Title</option>
+                <option value="year">Sort by Year</option>
+            </select>
+            <input type="text" class="search-bar" placeholder="Search movies..." id="search">
+        </div>
+    </header>
+
+    <div class="hero">
+        <div class="hero-content">
+            <h1 class="hero-title">Welcome to CineverseDB</h1>
+            <p class="hero-text">Discover Your Next Favorite Movie and create watchlists.</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="movie-grid" id="movieContainer"></div>
+    </div>
+
+    <div class="modal" id="movieModal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 CineVerseDB. All rights reserved.</p>
+        <div class="footer-links">
+            <a href="#">About</a> | 
+            <a href="#">Privacy Policy</a> | 
+            <a href="#">Contact</a>
+        </div>
+    </footer>
+
+    <script>
+        const movies = [
+            // Previous movies plus new additions
+            {
+                title: "The Shawshank Redemption",
+                year: 1994,
+                rating: 9.3,
+                genre: "Drama",
+                description: "Two imprisoned men bond over a number of years...",
+                image: "https://m.media-amazon.com/images/M/MV5BNDE3ODcxYzMtY2YzZC00NmNlLWJiNDMtZDViZWM2MzIxZDYwXkEyXkFqcGdeQXVyNjAwNDUxODI@._V1_.jpg",
+                director: "Frank Darabont",
+                cast: ["Tim Robbins", "Morgan Freeman"]
+            },
+            {
+                title: "Spider-Man: Across the Spider-Verse",
+                year: 2023,
+                rating: 8.7,
+                genre: "Animation, Action",
+                description: "Miles Morales catapults across the Multiverse...",
+                image: "https://m.media-amazon.com/images/M/MV5BMzI0NmVkMjEtYmY4MS00ZDMxLTlkZmEtMzU4MDQxYTMzMjU2XkEyXkFqcGdeQXVyMzQ0MzA0NTM@._V1_.jpg",
+                director: "Joaquim Dos Santos",
+                cast: ["Shameik Moore", "Hailee Steinfeld"]
+            },
+            {
+                title: "Mission: Impossible – Dead Reckoning Part One",
+                year: 2023,
+                rating: 7.7,
+                genre: "Adventure, Action",
+                description: "Ethan Hunt and the IMF team must track down a terrifying new weapon that threatens all of humanity if it falls into the wrong hands. With control of the future and the fate of the world at stake, a deadly race around the globe begins.",
+                image: "https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcRVqFaAKqKH4EYyEjQi6ObYxxupULtBK2QbWr9kUX9jH27OL8cb",
+                director: "Christopher Mcquarrie",
+                cast: ["Ethan Hunt", "Simon Pegg"]
+            },
+             {
+                title: "Dr. No",
+                year: 1962,
+                rating: 7.2,
+                genre: "Action, Adventure, Thriller",
+                description: "James Bond investigates the mysterious disappearance of a fellow agent in Jamaica.",
+                image: "https://m.media-amazon.com/images/M/MV5BM2Q0ODAxYTgtN2E3My00Yzc2LWI2NDUtOGU0YzgzYzM4OWMwXkEyXkFqcGc@._V1_.jpg",
+                director: "Terence Young",
+                cast: ["Sean Connery", "Ursula Andress", "Joseph Wiseman"]
+            },
+            {
+                title: "From Russia with Love",
+                year: 1963,
+                rating: 7.4,
+                genre: "Action, Adventure, Thriller",
+                description: "James Bond is sent to assist in the defection of a Soviet clerk, unaware it's a trap.",
+                image: "https://m.media-amazon.com/images/M/MV5BZGM1ZTk0ZjAtOGFjMS00YmFiLWFkZmQtYzA4Mjk4NDcxNzQwXkEyXkFqcGc@._V1_.jpg",
+                director: "Terence Young",
+                cast: ["Sean Connery", "Robert Shaw", "Lotte Lenya"]
+            },
+            {
+                title: "Goldfinger",
+                year: 1964,
+                rating: 7.7,
+                genre: "Action, Adventure, Thriller",
+                description: "James Bond uncovers a gold smuggling scheme and faces a deadly villain.",
+                image: "https://images.justwatch.com/poster/302509564/s718/goldfinger.jpg",
+                director: "Guy Hamilton",
+                cast: ["Sean Connery", "Gert Fröbe", "Honor Blackman"]
+            },
+            {
+                title: "Casino Royale",
+                year: 2006,
+                rating: 8.0,
+                genre: "Action, Adventure, Thriller",
+                description: "James Bond earns his 00 status and faces a terrorist financier in a high-stakes poker game.",
+                image: "https://resizing.flixster.com/-XZAfHZM39UwaGJIFWKAE8fS0ak=/v3/t/assets/p159167_p_v8_aw.jpg",
+                director: "Martin Campbell",
+                cast: ["Daniel Craig", "Eva Green", "Mads Mikkelsen"]
+            },
+            {
+                title: "Skyfall",
+                year: 2012,
+                rating: 7.8,
+                genre: "Action, Adventure, Thriller",
+                description: "James Bond's loyalty to M is tested as MI6 comes under attack.",
+                image: "https://m.media-amazon.com/images/M/MV5BNjAzMWNkODUtM2FlMi00NzgyLWJhMGUtMWEyNDYyZGFiN2RlXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+                director: "Sam Mendes",
+                cast: ["Daniel Craig", "Javier Bardem", "Judi Dench"]
+            },
+             {
+                title: "Mission: Impossible – Rogue Nation",
+                year: 2015,
+                rating: 7.4,
+                genre: "Action, Adventure, Thriller",
+                description: "Ethan and his team take on their most impossible mission yet—eradicating the Syndicate, an international rogue organization as highly skilled as they are.",
+                image: "https://fiu-original.b-cdn.net/fontsinuse.com/use-images/81/81647/81647.jpeg?filename=mission_impossible__rogue_nation_ver15_xlg.jpg",
+                director: "Christopher McQuarrie",
+                cast: ["Tom Cruise", "Rebecca Ferguson", "Simon Pegg"]
+            },
+            {
+                title: "Mission: Impossible – Fallout",
+                year: 2018,
+                rating: 7.7,
+                genre: "Action, Adventure, Thriller",
+                description: "Ethan Hunt and his IMF team, along with some familiar allies, race against time after a mission gone wrong.",
+                image: "https://lh5.googleusercontent.com/proxy/exc5w7jGGlLdWooqT2EP2Gf4X8tjkdqBEDdiYERQIlBDcxaxXG0wElAs4uweR7jjeUOh-7WfG3fyeB0RBnGWagElf5t1p42h7PJaD9KP5kulq_iaDDFQHpw26XecUfWSBpkA8g",
+                director: "Christopher McQuarrie",
+                cast: ["Tom Cruise", "Henry Cavill", "Ving Rhames"]
+            },
+            {
+                title: "Mission: Impossible – Ghost Protocol",
+                year: 2011,
+                rating: 7.4,
+                genre: "Action, Adventure, Thriller",
+                description: "The IMF is shut down when it's implicated in the bombing of the Kremlin, causing Ethan Hunt and his new team to go rogue to clear their organization's name.",
+                image: "https://m.media-amazon.com/images/M/MV5BMTY4MTUxMjQ5OV5BMl5BanBnXkFtZTcwNTUyMzg5Ng@@._V1_FMjpg_UX1000_.jpg",
+                director: "Brad Bird",
+                cast: ["Tom Cruise", "Jeremy Renner", "Simon Pegg"]
+            },
+            {
+                title: "Iron Man",
+                year: 2008,
+                rating: 7.9,
+                genre: "Action, Adventure, Sci-Fi",
+                description: "After being held captive in an Afghan cave, billionaire engineer Tony Stark creates a unique weaponized suit of armor to fight evil.",
+                image: "https://i.pinimg.com/736x/9f/bf/d3/9fbfd3709ca02fedd3b0588712c1ae77.jpg",
+                director: "Jon Favreau",
+                cast: ["Robert Downey Jr.", "Gwyneth Paltrow", "Jeff Bridges"]
+            },
+            {
+                title: "The Avengers",
+                year: 2012,
+                rating: 8.0,
+                genre: "Action, Adventure, Sci-Fi",
+                description: "Earth's mightiest heroes must come together and learn to fight as a team if they are to stop the mischievous Loki and his alien army.",
+                image: "https://resizing.flixster.com/-XZAfHZM39UwaGJIFWKAE8fS0ak=/v3/t/assets/p8815512_p_v8_ax.jpg",
+                director: "Joss Whedon",
+                cast: ["Robert Downey Jr.", "Chris Evans", "Mark Ruffalo"]
+            },
+            {
+                title: "Guardians of the Galaxy",
+                year: 2014,
+                rating: 8.1,
+                genre: "Action, Adventure, Comedy",
+                description: "A group of intergalactic criminals must pull together to stop a fanatical warrior with plans to purge the universe.",
+                image: "https://m.media-amazon.com/images/I/81lxKU40BvL.jpg",
+                director: "James Gunn",
+                cast: ["Chris Pratt", "Zoe Saldana", "Dave Bautista"]
+            },
+   {
+                title: "Black Panther",
+                year: 2018,
+                rating: 7.3,
+                genre: "Action, Adventure, Sci-Fi",
+                description: "T'Challa, heir to the hidden but advanced kingdom of Wakanda, must step forward to lead his people into a new future.",
+                image: "https://m.media-amazon.com/images/I/81dae9nZFBS.jpg",
+                director: "Ryan Coogler",
+                cast: ["Chadwick Boseman", "Michael B. Jordan", "Lupita Nyong'o"]
+            },
+            {
+                title: "Avengers: Endgame",
+                year: 2019,
+                rating: 8.4,
+                genre: "Action, Adventure, Drama",
+                description: "After the devastating events of Avengers: Infinity War, the universe is in ruins. The Avengers assemble once more to reverse Thanos' actions.",
+                image: "https://m.media-amazon.com/images/I/81nig-I3TDL._AC_UF894,1000_QL80_.jpg",
+                director: "Anthony Russo, Joe Russo",
+                cast: ["Robert Downey Jr.", "Chris Evans", "Scarlett Johansson"]
+            },
+             {
+                title: "Iron Man 2",
+                year: 2010,
+                rating: 7.0,
+                genre: "Action, Adventure, Sci-Fi",
+                description: "Tony Stark faces pressure from the government, the press, and the public to share his technology with the military.",
+                image: "https://image.tmdb.org/t/p/original/bMYuDvz2Zl0pNWIbt9GQqZt1CH.jpg",
+                director: "Jon Favreau",
+                cast: ["Robert Downey Jr.", "Gwyneth Paltrow", "Don Cheadle"]
+            },
+            {
+                title: "Iron Man 3",
+                year: 2013,
+                rating: 7.1,
+                genre: "Action, Adventure, Sci-Fi",
+                description: "When Tony Stark's world is torn apart by a formidable terrorist called the Mandarin, he starts an odyssey of rebuilding and retribution.",
+                image: "https://m.media-amazon.com/images/I/8159UW0-AEL.jpg",
+                director: "Shane Black",
+                cast: ["Robert Downey Jr.", "Guy Pearce", "Gwyneth Paltrow"]
+            },
+            {
+                title: "Captain America: The First Avenger",
+                year: 2011,
+                rating: 6.9,
+                genre: "Action, Adventure, Sci-Fi",
+                description: "Steve Rogers volunteers to participate in an experimental program that turns him into the Super Soldier known as Captain America.",
+                image: "https://resizing.flixster.com/DPxL1sG2snpcMbqGJc67YGTrjlM=/ems.cHJkLWVtcy1hc3NldHMvbW92aWVzL2JmZTdkNDA5LTA5NzktNGE3OC04ODE2LTJlOTBkYTA3MDY2NS5qcGc=",
+                director: "Joe Johnston",
+                cast: ["Chris Evans", "Hayley Atwell", "Sebastian Stan"]
+            },
+            {
+                title: "Captain America: The Winter Soldier",
+                year: 2014,
+                rating: 7.7,
+                genre: "Action, Adventure, Sci-Fi",
+                description: "Steve Rogers struggles to embrace his role in the modern world while battling a new threat from old history: the Soviet agent known as the Winter Soldier.",
+                image: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi4NnJTOsWljZbv1PrtJz-QXiSfiQFciAuiLIbV21cynKZdeuJgrBTdLlyBIdSfMuD9QxCronV1n9xVp7iQGpSDf54xE6wR35ZjIo8LPc-mRJW3NVLbnv50Vc88CM1OIXQUAhOj/s1600/Captain+America+The+Winter+Soldier+pop+art+poster+Nick+Fury+Black+WIdow+spies.jpg",
+                director: "Anthony Russo, Joe Russo",
+                cast: ["Chris Evans", "Scarlett Johansson", "Sebastian Stan"]
+            },
+            {
+                title: "Captain America: Civil War",
+                year: 2016,
+                rating: 7.8,
+                genre: "Action, Adventure, Sci-Fi",
+                description: "Political involvement in the Avengers' affairs causes a rift between Captain America and Iron Man.",
+                image: "https://m.media-amazon.com/images/M/MV5BMjQ0MTgyNjAxMV5BMl5BanBnXkFtZTgwNjUzMDkyODE@._V1_FMjpg_UX1000_.jpg",
+                director: "Anthony Russo, Joe Russo",
+                cast: ["Chris Evans", "Robert Downey Jr.", "Scarlett Johansson"]
+            },
+            {
+                title: "2001: A Space Odyssey",
+                year: 1968,
+                rating: 8.3,
+                genre: "Adventure, Sci-Fi",
+                description: "A space voyage to Jupiter turns mysterious when the ship's AI system, HAL 9000, begins to rebel.",
+                image: "https://i.etsystatic.com/12196920/r/il/c543d4/3770685753/il_fullxfull.3770685753_4sjk.jpg",
+                director: "Stanley Kubrick",
+                cast: ["Keir Dullea", "Gary Lockwood", "William Sylvester"]
+            },
+            {
+                title: "A Clockwork Orange",
+                year: 1971,
+                rating: 8.3,
+                genre: "Crime, Drama, Sci-Fi",
+                description: "In the future, a sadistic gang leader is imprisoned and volunteers for an experiment to curb his violent tendencies.",
+                image: "https://rukminim2.flixcart.com/image/850/1000/j6fcqkw0/poster/t/q/x/small-art-poster-a-clockwork-orange-hollywood-collection-movie-original-imaewuyfnxmypqyh.jpeg?q=90&crop=false",
+                director: "Stanley Kubrick",
+                cast: ["Malcolm McDowell", "Patrick Magee", "Michael Bates"]
+            },
+            {
+                title: "The Shining",
+                year: 1980,
+                rating: 8.4,
+                genre: "Drama, Horror",
+                description: "A family heads to an isolated hotel where a sinister presence influences the father into violence.",
+                image: "https://i.etsystatic.com/16821137/r/il/6b8372/2386770121/il_fullxfull.2386770121_ozbr.jpg",
+                director: "Stanley Kubrick",
+                cast: ["Jack Nicholson", "Shelley Duvall", "Danny Lloyd"]
+            },
+          {
+                title: "Inception",
+                year: 2010,
+                rating: 8.8,
+                genre: "Action, Adventure, Sci-Fi",
+                description: "A thief who enters the dreams of others to steal secrets is given a chance to have his criminal history erased if he can implant an idea into someone's mind.",
+                image: "https://m.media-amazon.com/images/I/71DwIcSgFcS.jpg",
+                director: "Christopher Nolan",
+                cast: ["Leonardo DiCaprio", "Joseph Gordon-Levitt", "Elliot Page"]
+            },
+{
+    title: "La La Land",
+    year: 2016,
+    rating: 8.0,
+    genre: "Comedy, Drama, Music",
+    description: "A jazz musician and an aspiring actress fall in love while pursuing their dreams in Los Angeles.",
+    image: "https://www.tallengestore.com/cdn/shop/products/LalaLand1_7c6e80fe-6c97-4dba-9e51-e342b8b70d44.jpg?v=1568977047",
+    director: "Damien Chazelle",
+    cast: ["Ryan Gosling", "Emma Stone", "John Legend"]
+},
+{
+    title: "Blade Runner 2049",
+    year: 2017,
+    rating: 8.0,
+    genre: "Action, Drama, Mystery",
+    description: "A young blade runner's discovery of a long-buried secret leads him to track down former blade runner Rick Deckard.",
+    image: "https://m.media-amazon.com/images/M/MV5BNzA1Njg4NzYxOV5BMl5BanBnXkFtZTgwODk5NjU3MzI@._V1_.jpg",
+    director: "Denis Villeneuve",
+    cast: ["Ryan Gosling", "Harrison Ford", "Ana de Armas"]
+},
+{
+    title: "Drive",
+    year: 2011,
+    rating: 7.8,
+    genre: "Crime, Drama",
+    description: "A mysterious Hollywood stuntman and mechanic moonlights as a getaway driver and finds himself in trouble when he helps out his neighbor.",
+    image: "https://www.tallengestore.com/cdn/shop/products/Drive-RyanGosling-HollywoodEnglishActionMovieGraphicPoster_003f1214-6df5-4f07-a7fe-9c68538095fa.jpg?v=1617796641",
+    director: "Nicolas Winding Refn",
+    cast: ["Ryan Gosling", "Carey Mulligan", "Bryan Cranston"]
+},
+{
+    title: "The Notebook",
+    year: 2004,
+    rating: 7.8,
+    genre: "Drama, Romance",
+    description: "A young couple falls in love during the early 1940s, but their social differences and World War II drive them apart.",
+    image: "https://upload.wikimedia.org/wikipedia/en/8/86/Posternotebook.jpg",
+    director: "Nick Cassavetes",
+    cast: ["Ryan Gosling", "Rachel McAdams", "James Garner"]
+},
+{
+    title: "The Big Short",
+    year: 2015,
+    rating: 7.8,
+    genre: "Biography, Comedy, Drama",
+    description: "In the mid-2000s, a group of investors bet against the US mortgage market and discover how flawed and corrupt the system is.",
+    image: "https://m.media-amazon.com/images/M/MV5BZDZkNDQ3YjktYjBlZC00YTY1LTgxOGYtY2RhMWFhZmNkZGY3XkEyXkFqcGc@._V1_.jpg",
+    director: "Adam McKay",
+    cast: ["Christian Bale", "Steve Carell", "Ryan Gosling"]
+},
+{
+    "title": "Crazy, Stupid, Love",
+    "year": 2011,
+    "rating": 7.4,
+    "genre": "Comedy, Drama, Romance",
+    "description": "A middle-aged man seeks to rediscover his manhood with the help of a young bachelor after his marriage falls apart.",
+    "image": "https://m.media-amazon.com/images/M/MV5BMTg2MjkwMTM0NF5BMl5BanBnXkFtZTcwMzc4NDg2NQ@@._V1_FMjpg_UX1000_.jpg",
+    "director": "Glenn Ficarra, John Requa",
+    "cast": ["Steve Carell", "Ryan Gosling", "Julianne Moore"]
+},
+{
+    "title": "The Ides of March",
+    "year": 2011,
+    "rating": 7.1,
+    "genre": "Drama, Thriller",
+    "description": "An idealistic staffer for a new presidential candidate gets a crash course on dirty politics during his stint on the campaign trail.",
+    "image": "https://miro.medium.com/v2/resize:fit:600/1*YUwIM-_SQEMq7F_gRmE-Sw.jpeg",
+    "director": "George Clooney",
+    "cast": ["Ryan Gosling", "George Clooney", "Philip Seymour Hoffman"]
+},
+{
+    "title": "Blue Valentine",
+    "year": 2010,
+    "rating": 7.3,
+    "genre": "Drama, Romance",
+    "description": "The relationship of a contemporary married couple, charting their evolution over a span of years by cross-cutting between time periods.",
+    "image": "https://resizing.flixster.com/-XZAfHZM39UwaGJIFWKAE8fS0ak=/v3/t/assets/p7985994_p_v8_aa.jpg",
+    "director": "Derek Cianfrance",
+    "cast": ["Ryan Gosling", "Michelle Williams", "John Doman"]
+},
+{
+    "title": "Lars and the Real Girl",
+    "year": 2007,
+    "rating": 7.3,
+    "genre": "Comedy, Drama, Romance",
+    "description": "A delusional young man strikes up an unconventional relationship with a doll he finds on the Internet.",
+    "image": "https://m.media-amazon.com/images/M/MV5BZThiOTA4N2UtNzJiYS00MDI0LWI3OWItYzYxYzU3M2YwM2M4XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    "director": "Craig Gillespie",
+    "cast": ["Ryan Gosling", "Emily Mortimer", "Paul Schneider"]
+},
+{
+    "title": "Half Nelson",
+    "year": 2006,
+    "rating": 7.2,
+    "genre": "Drama",
+    "description": "An inner-city junior high school teacher with a drug habit forms an unlikely friendship with one of his students after she discovers his secret.",
+    "image": "https://resizing.flixster.com/-XZAfHZM39UwaGJIFWKAE8fS0ak=/v3/t/assets/p162548_p_v8_ah.jpg",
+    "director": "Ryan Fleck",
+    "cast": ["Ryan Gosling", "Anthony Mackie", "Shareeka Epps"]
+},
+ {
+        title: "Batman v Superman: Dawn of Justice",
+        year: 2016,
+        rating: 6.4,
+        genre: "Action, Adventure, Drama",
+        description: "Fearing the actions of Superman, Gotham City’s own vigilante, Batman, takes on Metropolis’s most revered, modern-day savior while the world wrestles with what sort of hero it really needs.",
+        image: "https://m.media-amazon.com/images/I/71jwFEfJ80L.jpg",
+        director: "Zack Snyder",
+        cast: ["Ben Affleck", "Henry Cavill", "Amy Adams"]
+    },
+    {
+        title: "Wonder Woman",
+        year: 2017,
+        rating: 7.4,
+        genre: "Action, Adventure, Fantasy",
+        description: "When an American pilot crashes on her sheltered island paradise, Diana, an Amazonian warrior, leaves her home to help fight a war, discovering her true powers along the way.",
+        image: "https://rukminim2.flixcart.com/image/850/1000/jt8yxe80/poster/a/a/g/medium-wonder-woman4-wonder-woman-movie-poster-for-room-office-original-imafehzwdqfaqhaa.jpeg?q=20&crop=false",
+        director: "Patty Jenkins",
+        cast: ["Gal Gadot", "Chris Pine", "Robin Wright"]
+    },
+    {
+        title: "Justice League",
+        year: 2017,
+        rating: 6.3,
+        genre: "Action, Adventure, Fantasy",
+        description: "Fueled by his restored faith in humanity and inspired by Superman’s selfless act, Bruce Wayne enlists the help of his newfound ally, Diana Prince, to face an even greater enemy.",
+        image: "https://mir-s3-cdn-cf.behance.net/project_modules/hd/95b8fe58951683.5a0f331b26b6f.jpg",
+        director: "Zack Snyder",
+        cast: ["Ben Affleck", "Gal Gadot", "Ezra Miller"]
+    },
+    {
+        title: "Aquaman",
+        year: 2018,
+        rating: 6.9,
+        genre: "Action, Adventure, Fantasy",
+        description: "Arthur Curry, the human-born heir to the underwater kingdom of Atlantis, must step forward to reclaim his birthright as the protector of the deep.",
+        image: "https://i.pinimg.com/736x/bf/d7/fb/bfd7fb59c72916294d656cffeb01027e.jpg",
+        director: "James Wan",
+        cast: ["Jason Momoa", "Amber Heard", "Willem Dafoe"]
+    },
+    {
+        title: "The Dark Knight",
+        year: 2008,
+        rating: 9.0,
+        genre: "Action, Crime, Drama",
+        description: "When the menace known as The Joker emerges from his mysterious past, he wreaks havoc and chaos on the people of Gotham, forcing Batman to consider his most important decision.",
+        image: "https://m.media-amazon.com/images/I/81IfoBox2TL.jpg",
+        director: "Christopher Nolan",
+        cast: ["Christian Bale", "Heath Ledger", "Aaron Eckhart"]
+    },
+    {
+        title: "Batman Begins",
+        year: 2005,
+        rating: 8.2,
+        genre: "Action, Adventure",
+        description: "After training with his mentor, Bruce Wayne returns to Gotham City to fight crime and become the masked vigilante known as Batman.",
+        image: "https://m.media-amazon.com/images/I/716L7+cGBfL._AC_UF1000,1000_QL80_.jpg",
+        director: "Christopher Nolan",
+        cast: ["Christian Bale", "Michael Caine", "Liam Neeson"]
+    },
+    {
+        title: "The Prestige",
+        year: 2006,
+        rating: 8.5,
+        genre: "Drama, Mystery, Sci-Fi",
+        description: "In the late 19th century, two magicians engage in a bitter rivalry, each trying to best the other's tricks, leading to dangerous consequences.",
+        image: "https://m.media-amazon.com/images/I/61cgLHeHcqL._AC_UF894,1000_QL80_.jpg",
+        director: "Christopher Nolan",
+        cast: ["Christian Bale", "Hugh Jackman", "Scarlett Johansson"]
+    },
+    {
+        title: "Vertigo",
+        year: 1958,
+        rating: 8.3,
+        genre: "Drama, Mystery, Thriller",
+        description: "A retired San Francisco detective suffering from acrophobia investigates the strange activities of an acquaintance’s wife, all the while becoming dangerously obsessed with her.",
+        image: "https://image.tmdb.org/t/p/original/elfrqaTPcR9YUIF4ZXnAAGZwZPJ.jpg",
+        director: "Alfred Hitchcock",
+        cast: ["James Stewart", "Kim Novak", "Barbara Bel Geddes"]
+    },
+    {
+        title: "Psycho",
+        year: 1960,
+        rating: 8.5,
+        genre: "Horror, Mystery, Thriller",
+        description: "A secretary embezzles money from her employer’s client and ends up at a secluded motel run by a disturbed man with a dark secret.",
+        image: "https://i.ebayimg.com/images/g/HtsAAOSwY11jVxZ1/s-l1200.jpg",
+        director: "Alfred Hitchcock",
+        cast: ["Anthony Perkins", "Janet Leigh", "Vera Miles"]
+    },
+    {
+        title: "Rear Window",
+        year: 1954,
+        rating: 8.5,
+        genre: "Mystery, Thriller",
+        description: "A wheelchair-bound photographer spies on his neighbors from his apartment window and becomes convinced one of them has committed murder.",
+        image: "https://img.kingandmcgaw.com/imagecache/4/3/si-431882.jpg_ihcm-60.00_iwcm-40.70_fls-880601L.tif_fts-880601T.tif_mc-_fwcm-1.90_maxdim-1000_en_easyart___iar-1.jpg",
+        director: "Alfred Hitchcock",
+        cast: ["James Stewart", "Grace Kelly", "Wendell Corey"]
+    },
+    {
+        title: "North by Northwest",
+        year: 1959,
+        rating: 8.3,
+        genre: "Action, Adventure, Mystery",
+        description: "A New York advertising executive is mistaken for a government agent by a group of foreign spies, and is pursued across the country while attempting to clear his name.",
+        image: "https://ih1.redbubble.net/image.3864010848.3724/fposter,small,wall_texture,product,750x1000.u1.jpg",
+        director: "Alfred Hitchcock",
+        cast: ["Cary Grant", "Eva Marie Saint", "James Mason"]
+    },
+    {
+        title: "The Birds",
+        year: 1963,
+        rating: 7.7,
+        genre: "Horror, Mystery, Thriller",
+        description: "A wealthy San Francisco socialite becomes entangled with a man who’s a former lover, while birds in the area begin to attack people in increasing numbers.",
+        image: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/The_Birds_original_poster.jpg/667px-The_Birds_original_poster.jpg",
+        director: "Alfred Hitchcock",
+        cast: ["Rod Taylor", "Tippi Hedren", "Suzanne Pleshette"]
+    },
+{
+    "title": "Election",
+    "year": 1999,
+    "rating": 7.2,
+    "genre": "Comedy, Drama",
+    "description": "A high school teacher's personal life becomes complicated as he works with students during the school elections, particularly with an overachieving candidate.",
+    "image": "https://m.media-amazon.com/images/M/MV5BMTVmMWJiMTgtNmNmMS00NmI2LTgxZTAtNjdhODE2NTBlYTAyXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    "director": "Alexander Payne",
+    "cast": ["Matthew Broderick", "Reese Witherspoon", "Chris Klein"]
+},
+{
+    "title": "Sideways",
+    "year": 2004,
+    "rating": 7.5,
+    "genre": "Comedy, Drama, Romance",
+    "description": "Two men reaching middle age with not much to show but disappointment embark on a week-long road trip through California's wine country, encountering adventures and life lessons along the way.",
+    "image": "https://images.squarespace-cdn.com/content/v1/595ec6a3c534a5e05a54b36a/1507746879946-S7YDW8PCI539ED8NNW4J/1SIDEWAYS1.jpg",
+    "director": "Alexander Payne",
+    "cast": ["Paul Giamatti", "Thomas Haden Church", "Virginia Madsen"]
+},
+{
+    "title": "The Descendants",
+    "year": 2011,
+    "rating": 7.3,
+    "genre": "Comedy, Drama",
+    "description": "A land baron tries to reconnect with his two daughters after his wife is seriously injured in a boating accident, leading to unexpected revelations and challenges.",
+    "image": "https://m.media-amazon.com/images/M/MV5BZTk3ZDllMjYtNjFmZS00OTE2LTljYWItMDY1OTkwYTY0MDQ0XkEyXkFqcGc@._V1_.jpg",
+    "director": "Alexander Payne",
+    "cast": ["George Clooney", "Shailene Woodley", "Amara Miller"]
+},
+{
+    "title": "Spirited Away",
+    "year": 2001,
+    "rating": 8.6,
+    "genre": "Animation, Adventure, Family",
+    "description": "During her family's move to the suburbs, a sullen 10-year-old girl wanders into a world ruled by gods, witches, and spirits, where humans are transformed into beasts.",
+    "image": "https://filmartgallery.com/cdn/shop/products/Spirited-Away-Vintage-Movie-Poster-Original_600x.jpg?v=1738907392",
+    "director": "Hayao Miyazaki",
+    "cast": ["Rumi Hiiragi", "Miyu Irino", "Mari Natsuki"]
+},
+{
+    "title": "Akira",
+    "year": 1988,
+    "rating": 8.0,
+    "genre": "Animation, Action, Drama",
+    "description": "A secret military project endangers Neo-Tokyo when it turns a biker gang member into a rampaging psychic psychopath who can only be stopped by two teenagers and a group of psychics.",
+    "image": "https://i.pinimg.com/736x/5b/bc/a6/5bbca657a4283e93610d124b0ed5ebc4.jpg",
+    "director": "Katsuhiro Otomo",
+    "cast": ["Mitsuo Iwata", "Nozomu Sasaki", "Mami Koyama"]
+},
+{
+    "title": "My Neighbor Totoro",
+    "year": 1988,
+    "rating": 8.1,
+    "genre": "Animation, Family, Fantasy",
+    "description": "When two girls move to the countryside to be near their ailing mother, they have adventures with the wondrous forest spirits who live nearby.",
+    "image": "https://m.media-amazon.com/images/I/71KRVfU7qzL._AC_UF894,1000_QL80_.jpg",
+    "director": "Hayao Miyazaki",
+    "cast": ["Noriko Hidaka", "Chika Sakamoto", "Shigesato Itoi"]
+},
+{
+    "title": "Fight Club",
+    "year": 1999,
+    "rating": 8.8,
+    "genre": "Drama",
+    "description": "An insomniac office worker and a devil-may-care soap maker form an underground fight club that evolves into something much more.",
+    "image": "https://m.media-amazon.com/images/I/71o1aRN1FJL.jpg",
+    "director": "David Fincher",
+    "cast": ["Brad Pitt", "Edward Norton", "Helena Bonham Carter"]
+},
+{
+    "title": "Inglourious Basterds",
+    "year": 2009,
+    "rating": 8.3,
+    "genre": "Adventure, Drama, War",
+    "description": "In Nazi-occupied France during World War II, a plan to assassinate Nazi leaders by a group of Jewish U.S. soldiers coincides with a theater owner's vengeful plans for the same.",
+    "image": "https://m.media-amazon.com/images/I/8139P1FPTsS.jpg",
+    "director": "Quentin Tarantino",
+    "cast": ["Brad Pitt", "Diane Kruger", "Eli Roth"]
+},
+{
+    "title": "Once Upon a Time in Hollywood",
+    "year": 2019,
+    "rating": 7.6,
+    "genre": "Comedy, Drama",
+    "description": "A faded television actor and his stunt double strive to achieve fame and success in the final years of Hollywood's Golden Age in 1969 Los Angeles.",
+    "image": "https://m.media-amazon.com/images/I/A14MibvNZpL._AC_UF894,1000_QL80_.jpg",
+    "director": "Quentin Tarantino",
+    "cast": ["Leonardo DiCaprio", "Brad Pitt", "Margot Robbie"]
+},
+{
+    "title": "Kill Bill: Vol. 1",
+    "year": 2003,
+    "rating": 8.1,
+    "genre": "Action, Crime, Thriller",
+    "description": "A former assassin, known as 'The Bride,' wakes from a coma four years after her jealous ex-lover attempts to murder her on her wedding day. Fueled by revenge, she sets out to kill the members of the Deadly Viper Assassination Squad who betrayed her.",
+    "image": "https://alternativemovieposters.com/wp-content/uploads/2021/04/RuizBurgos_KillBill.jpg",
+    "director": "Quentin Tarantino",
+    "cast": ["Uma Thurman", "Lucy Liu", "Vivica A. Fox"]
+},
+
+{
+    "title": "Kill Bill: Vol. 2",
+    "year": 2004,
+    "rating": 8.0,
+    "genre": "Action, Crime, Drama",
+    "description": "The Bride continues her quest for vengeance against her former boss and lover, Bill, and his brother Budd, as well as the treacherous, one-eyed Elle.",
+    "image": "https://m.media-amazon.com/images/M/MV5BY2FiNzhiZTctNzU1Mi00NDkwLWExNDMtZTg0MjYyNzhkNWNkXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    "director": "Quentin Tarantino",
+    "cast": ["Uma Thurman", "David Carradine", "Michael Madsen"]
+},
+{
+    "title": "Titanic",
+    "year": 1997,
+    "rating": 7.8,
+    "genre": "Drama, Romance",
+    "description": "A young aristocrat falls in love with a kind but poor artist aboard the luxurious, ill-fated R.M.S. Titanic.",
+    "image": "https://images-cdn.ubuy.co.id/633cae2eb5f1fa3ed74f58ac-titanic-movie-poster-leonardo-dicaprio.jpg",
+    "director": "James Cameron",
+    "cast": ["Leonardo DiCaprio", "Kate Winslet", "Billy Zane"]
+},
+{
+    "title": "Pulp Fiction",
+    "year": 1994,
+    "rating": 8.9,
+    "genre": "Crime, Drama",
+    "description": "The lives of two mob hitmen, a boxer, a gangster's wife, and a pair of diner bandits intertwine in four tales of violence and redemption.",
+    "image": "https://m.media-amazon.com/images/I/914mMOJHWVL._AC_UF894,1000_QL80_.jpg",
+    "cast": ["John Travolta", "Uma Thurman", "Samuel L. Jackson"]
+},
+{
+    "title": "Django Unchained",
+    "year": 2012,
+    "rating": 8.4,
+    "genre": "Drama, Western",
+    "description": "With the help of a German bounty hunter, a freed slave sets out to rescue his wife from a brutal Mississippi plantation owner.",
+    "image": "https://c8.alamy.com/comp/2RCP1CK/django-unchained-2012-directed-by-quentin-tarantino-credit-columbia-pictures-album-2RCP1CK.jpg",
+    "director": "Quentin Tarantino",
+    "cast": ["Jamie Foxx", "Christoph Waltz", "Leonardo DiCaprio"]
+},
+{
+    "title": "Taxi Driver",
+    "year": 1976,
+    "rating": 8.2,
+    "genre": "Crime, Drama",
+    "description": "A mentally unstable veteran works as a nighttime taxi driver in New York City, where the perceived decadence and sleaze fuel his urge for violent action.",
+    "image": "https://image.tmdb.org/t/p/original/ekstpH614fwDX8DUln1a2Opz0N8.jpg",
+    "director": "Martin Scorsese",
+    "cast": ["Robert De Niro", "Jodie Foster", "Cybill Shepherd"]
+},
+{
+    "title": "Raging Bull",
+    "year": 1980,
+    "rating": 8.2,
+    "genre": "Biography, Drama, Sport",
+    "description": "The life of boxer Jake LaMotta, whose violence and temper that led him to the top in the ring destroyed his life outside of it.",
+    "image": "https://upload.wikimedia.org/wikipedia/en/5/5f/Raging_Bull_poster.jpg",
+    "director": "Martin Scorsese",
+    "cast": ["Robert De Niro", "Cathy Moriarty", "Joe Pesci"]
+},
+{
+    "title": "Goodfellas",
+    "year": 1990,
+    "rating": 8.7,
+    "genre": "Biography, Crime, Drama",
+    "description": "The story of Henry Hill and his life in the mob, covering his relationship with his wife Karen Hill and his partners Jimmy Conway and Tommy DeVito in the Italian-American crime syndicate.",
+    "image": "https://upload.wikimedia.org/wikipedia/en/7/7b/Goodfellas.jpg",
+    "director": "Martin Scorsese",
+    "cast": ["Robert De Niro", "Ray Liotta", "Joe Pesci"]
+},
+{
+    "title": "The Departed",
+    "year": 2006,
+    "rating": 8.5,
+    "genre": "Crime, Drama, Thriller",
+    "description": "An undercover cop and a mole in the police attempt to identify each other while infiltrating an Irish gang in Boston.",
+    "image": "https://upload.wikimedia.org/wikipedia/en/5/50/Departed234.jpg",
+    "director": "Martin Scorsese",
+    "cast": ["Leonardo DiCaprio", "Matt Damon", "Jack Nicholson"]
+},
+{
+    "title": "Forrest Gump",
+    "year": 1994,
+    "rating": 8.8,
+    "genre": "Drama, Romance",
+    "description": "The life story of slow-witted but kind-hearted Forrest Gump, whose actions unknowingly impact historical events in 20th-century America.",
+    "image": "https://upload.wikimedia.org/wikipedia/en/6/67/Forrest_Gump_poster.jpg",
+    "director": "Robert Zemeckis",
+    "cast": ["Tom Hanks", "Robin Wright", "Gary Sinise"]
+},
+{
+    "title": "The Matrix",
+    "year": 1999,
+    "rating": 8.7,
+    "genre": "Action, Sci-Fi",
+    "description": "A computer hacker learns about the true nature of his reality and his role in the war against its controllers.",
+    "image": "https://upload.wikimedia.org/wikipedia/en/c/c1/The_Matrix_Poster.jpg",
+    "director": "Lana Wachowski, Lilly Wachowski",
+    "cast": ["Keanu Reeves", "Laurence Fishburne", "Carrie-Anne Moss"]
+},
+{
+    "title": "Gladiator",
+    "year": 2000,
+    "rating": 8.5,
+    "genre": "Action, Adventure, Drama",
+    "description": "A former Roman General sets out to exact vengeance against the corrupt emperor who murdered his family and sent him into slavery.",
+    "image": "https://m.media-amazon.com/images/I/61dcMsYIAJL._AC_UF894,1000_QL80_.jpg",
+    "director": "Ridley Scott",
+    "cast": ["Russell Crowe", "Joaquin Phoenix", "Connie Nielsen"]
+},
+{
+    "title": "The Godfather",
+    "year": 1972,
+    "rating": 9.2,
+    "genre": "Crime, Drama",
+    "description": "The aging patriarch of an organized crime dynasty transfers control of his clandestine empire to his reluctant son.",
+    "image": "https://upload.wikimedia.org/wikipedia/en/1/1c/Godfather_ver1.jpg",
+    "director": "Francis Ford Coppola",
+    "cast": ["Marlon Brando", "Al Pacino", "James Caan"]
+},
+{
+    "title": "The Silence of the Lambs",
+    "year": 1991,
+    "rating": 8.6,
+    "genre": "Crime, Drama, Thriller",
+    "description": "A young F.B.I. cadet must receive the help of an incarcerated and manipulative cannibal killer to catch another serial killer, who skins his victims.",
+    "image": "https://upload.wikimedia.org/wikipedia/en/8/86/The_Silence_of_the_Lambs_poster.jpg",
+    "director": "Jonathan Demme",
+    "cast": ["Jodie Foster", "Anthony Hopkins", "Scott Glenn"]
+},
+{
+    "title": "Whiplash",
+    "year": 2014,
+    "rating": 8.5,
+    "genre": "Drama, Music",
+    "description": "A promising young drummer enrolls at a cutthroat music conservatory where his dreams of greatness are mentored by an instructor who will stop at nothing to realize a student’s potential.",
+    "image": "https://upload.wikimedia.org/wikipedia/en/0/01/Whiplash_poster.jpg",
+    "director": "Damien Chazelle",
+    "cast": ["Miles Teller", "J.K. Simmons", "Paul Reiser"]
+},
+{
+    "title": "The Green Mile",
+    "year": 1999,
+    "rating": 8.6,
+    "genre": "Crime, Drama, Fantasy",
+    "description": "The lives of guards on Death Row are affected by one of their charges: a black man accused of child murder and rape, yet who has a mysterious gift.",
+    "image": "https://m.media-amazon.com/images/M/MV5BMTUxMzQyNjA5MF5BMl5BanBnXkFtZTYwOTU2NTY3._V1_FMjpg_UX1000_.jpg",
+    "director": "Frank Darabont",
+    "cast": ["Tom Hanks", "Michael Clarke Duncan", "David Morse"]
+},
+{
+    "title": "No Country for Old Men",
+    "year": 2007,
+    "rating": 8.2,
+    "genre": "Crime, Drama, Thriller",
+    "description": "A hunter stumbles upon a drug deal gone wrong and more than two million dollars in cash near the Rio Grande. He takes the money, setting off a chain reaction of violence.",
+    "image": "https://upload.wikimedia.org/wikipedia/en/8/8b/No_Country_for_Old_Men_poster.jpg",
+    "director": "Joel Coen, Ethan Coen",
+    "cast": ["Tommy Lee Jones", "Javier Bardem", "Josh Brolin"]
+},
+{
+    "title": "Joker",
+    "year": 2019,
+    "rating": 8.4,
+    "genre": "Crime, Drama, Thriller",
+    "description": "In Gotham City, mentally troubled comedian Arthur Fleck embarks on a downward spiral of revolution and bloody crime. This path brings him face-to-face with his alter-ego: The Joker.",
+    "image": "https://upload.wikimedia.org/wikipedia/en/e/e1/Joker_%282019_film%29_poster.jpg",
+    "director": "Todd Phillips",
+    "cast": ["Joaquin Phoenix", "Robert De Niro", "Zazie Beetz"]
+},
+{
+    "title": "The Grand Budapest Hotel",
+    "year": 2014,
+    "rating": 8.1,
+    "genre": "Adventure, Comedy, Crime",
+    "description": "A legendary concierge at a famous European hotel teams up with a young employee to prove his innocence after being framed for murder.",
+    "image": "https://m.media-amazon.com/images/M/MV5BMzM5NjUxOTEyMl5BMl5BanBnXkFtZTgwNjEyMDM0MDE@._V1_FMjpg_UX1000_.jpg",
+    "director": "Wes Anderson",
+    "cast": ["Ralph Fiennes", "Tony Revolori", "Adrien Brody"]
+},
+{
+    "title": "Fargo",
+    "year": 1996,
+    "rating": 8.1,
+    "genre": "Crime, Drama, Thriller",
+    "description": "A car salesman’s inept crime falls apart due to the persistent investigation of a determined and pregnant police chief.",
+    "image": "https://resizing.flixster.com/-XZAfHZM39UwaGJIFWKAE8fS0ak=/v3/t/assets/p17672_p_v8_av.jpg",
+    "director": "Joel Coen, Ethan Coen",
+    "cast": ["Frances McDormand", "William H. Macy", "Steve Buscemi"]
+},
+{
+    "title": "The Big Lebowski",
+    "year": 1998,
+    "rating": 8.1,
+    "genre": "Comedy, Crime",
+    "description": "Jeff 'The Dude' Lebowski is mistaken for a millionaire of the same name, setting off a series of strange and hilarious events.",
+    "image": "https://upload.wikimedia.org/wikipedia/en/3/35/Biglebowskiposter.jpg",
+    "director": "Joel Coen, Ethan Coen",
+    "cast": ["Jeff Bridges", "John Goodman", "Julianne Moore"]
+},
+{
+    "title": "Jurassic Park",
+    "year": 1993,
+    "rating": 8.2,
+    "genre": "Adventure, Sci-Fi, Thriller",
+    "description": "A group of visitors must survive an island where cloned dinosaurs break loose from their enclosures.",
+    "image": "https://upload.wikimedia.org/wikipedia/en/e/e7/Jurassic_Park_poster.jpg",
+    "director": "Steven Spielberg",
+    "cast": ["Sam Neill", "Laura Dern", "Jeff Goldblum"]
+},
+{
+    "title": "Jaws",
+    "year": 1975,
+    "rating": 8.1,
+    "genre": "Adventure, Thriller",
+    "description": "A local sheriff, a marine biologist, and an old seafarer hunt a massive great white shark terrorizing a beach town.",
+    "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Jaws_movie_poster.jpg/1200px-Jaws_movie_poster.jpg",
+    "cast": ["Roy Scheider", "Robert Shaw", "Richard Dreyfuss"]
+},
+{
+    "title": "There Will Be Blood",
+    "year": 2007,
+    "rating": 8.2,
+    "genre": "Drama",
+    "description": "A ruthless oilman goes to extreme lengths to secure his empire in early 20th-century America.",
+    "image": "https://m.media-amazon.com/images/M/MV5BMjAxODQ4MDU5NV5BMl5BanBnXkFtZTcwMDU4MjU1MQ@@._V1_FMjpg_UX1000_.jpg",
+    "director": "Paul Thomas Anderson",
+    "cast": ["Daniel Day-Lewis", "Paul Dano", "Dillon Freasier"]
+},
+{
+    "title": "Good Will Hunting",
+    "year": 1997,
+    "rating": 8.3,
+    "genre": "Drama, Romance",
+    "description": "A young janitor at MIT is discovered to be a mathematical genius, but struggles with personal issues and relationships.",
+    "image": "https://upload.wikimedia.org/wikipedia/en/5/52/Good_Will_Hunting.png",
+    "director": "Gus Van Sant",
+    "cast": ["Matt Damon", "Robin Williams", "Ben Affleck"]
+},
+{
+    "title": "Mad Max: Fury Road",
+    "year": 2015,
+    "rating": 8.1,
+    "genre": "Action, Adventure, Sci-Fi",
+    "description": "In a post-apocalyptic wasteland, a drifter and a rebel leader work together to escape a tyrannical warlord.",
+    "image": "https://upload.wikimedia.org/wikipedia/en/6/6e/Mad_Max_Fury_Road.jpg",
+    "director": "George Miller",
+    "cast": ["Tom Hardy", "Charlize Theron", "Nicholas Hoult"]
+},
+{
+    "title": "The Revenant",
+    "year": 2015,
+    "rating": 8.0,
+    "genre": "Action, Adventure, Drama",
+    "description": "A frontiersman on a fur trading expedition fights for survival after being left for dead.",
+    "image": "https://upload.wikimedia.org/wikipedia/en/b/b6/The_Revenant_2015_film_poster.jpg",
+    "director": "Alejandro G. Iñárritu",
+    "cast": ["Leonardo DiCaprio", "Tom Hardy", "Domhnall Gleeson"]
+},
+{
+    "title": "The Social Network",
+    "year": 2010,
+    "rating": 7.8,
+    "genre": "Biography, Drama",
+    "description": "The story of Facebook’s creation and the legal battles that followed.",
+    "image": "https://upload.wikimedia.org/wikipedia/en/8/8c/The_Social_Network_film_poster.png",
+    "director": "David Fincher",
+    "cast": ["Jesse Eisenberg", "Andrew Garfield", "Justin Timberlake"]
+},
+{
+    "title": "Dune: Part One",
+    "year": 2021,
+    "rating": 8.0,
+    "genre": "Adventure, Drama, Sci-Fi",
+    "description": "A young nobleman must navigate a dangerous interstellar conflict and unlock his true potential.",
+    "image": "https://upload.wikimedia.org/wikipedia/en/8/8e/Dune_%282021_film%29.jpg",
+    "director": "Denis Villeneuve",
+    "cast": ["Timothée Chalamet", "Rebecca Ferguson", "Oscar Isaac"]
+},
+{
+    "title": "Arrival",
+    "year": 2016,
+    "rating": 7.9,
+    "genre": "Drama, Mystery, Sci-Fi",
+    "description": "A linguist works with the military to communicate with extraterrestrial life after twelve mysterious spacecraft land around the world.",
+    "image": "https://m.media-amazon.com/images/M/MV5BMTExMzU0ODcxNDheQTJeQWpwZ15BbWU4MDE1OTI4MzAy._V1_FMjpg_UX1000_.jpg",
+    "director": "Denis Villeneuve",
+    "cast": ["Amy Adams", "Jeremy Renner", "Forest Whitaker"]
+},
+{
+    "title": "Passengers",
+    "year": 2016,
+    "rating": 7.0,
+    "genre": "Adventure, Drama, Romance",
+    "description": "Two passengers on a spaceship traveling to a distant colony planet are awakened 90 years early due to a malfunction, forming a bond amidst the situation.",
+    "image": "https://images.moviesanywhere.com/39c15a3ca232fb9edc5b07e2050ca49a/a9105114-4a28-48df-b2ac-c2367276b369.jpg",
+    "director": "Morten Tyldum",
+    "cast": ["Jennifer Lawrence", "Chris Pratt", "Michael Sheen"]
+},
+{
+    "title": "Oblivion",
+    "year": 2013,
+    "rating": 7.0,
+    "genre": "Action, Adventure, Mystery",
+    "description": "In a post-apocalyptic Earth, a drone repairman discovers a mysterious woman and uncovers secrets about his mission and the fate of humanity.",
+    "image": "https://m.media-amazon.com/images/M/MV5BMTQwMDY0MTA4MF5BMl5BanBnXkFtZTcwNzI3MDgxOQ@@._V1_.jpg",
+    "director": "Joseph Kosinski",
+    "cast": ["Tom Cruise", "Morgan Freeman", "Andrea Riseborough"]
+},
+{
+    "title": "District 9",
+    "year": 2009,
+    "rating": 7.9,
+    "genre": "Action, Sci-Fi, Thriller",
+    "description": "An alien race is forced to live in slum-like conditions on Earth, and a government agent becomes part of a mission to help them.",
+    "image": "https://m.media-amazon.com/images/M/MV5BMTM4OTI1OTM5NF5BMl5BanBnXkFtZTcwMzk5MTU1Mg@@._V1_.jpg",
+    "director": "Neill Blomkamp",
+    "cast": ["Sharlto Copley", "David James", "Jason Cope"]
+},
+{
+    "title": "Elysium",
+    "year": 2013,
+    "rating": 6.6,
+    "genre": "Action, Drama, Sci-Fi",
+    "description": "In the future, the rich live on a luxurious space station while the rest of humanity lives on a ravaged Earth. A man takes on a mission that could bring equality to the two worlds.",
+    "image": "https://m.media-amazon.com/images/M/MV5BNDc2NjU0MTcwNV5BMl5BanBnXkFtZTcwMjg4MDg2OQ@@._V1_FMjpg_UX1000_.jpg",
+    "director": "Neill Blomkamp",
+    "cast": ["Matt Damon", "Jodie Foster", "Sharlto Copley"]
+},
+{
+    "title": "Chappie",
+    "year": 2015,
+    "rating": 6.8,
+    "genre": "Action, Crime, Drama",
+    "description": "In the near future, a stolen police robot is given new programming and becomes a unique, self-aware being.",
+    "image": "https://www.cinebonus.fr/images/ff/700/chappie-476430658e.jpg",
+    "director": "Neill Blomkamp",
+    "cast": ["Sharlto Copley", "Dev Patel", "Hugh Jackman"]
+},
+{
+    "title": "Top Gun",
+    "year": 1986,
+    "rating": 6.9,
+    "genre": "Action, Drama",
+    "description": "A talented fighter pilot must deal with his own ego and self-doubt while facing the challenge of becoming the best in the elite Navy training program.",
+    "image": "https://pics.filmaffinity.com/Top_Gun-106192666-large.jpg",
+    "director": "Tony Scott",
+    "cast": ["Tom Cruise", "Kelly McGillis", "Val Kilmer"]
+},
+{
+    "title": "F1 ",
+    "year": 2023,
+    "rating": 8.3,
+    "genre": "Action, Drama, Sport",
+    "description": "A high-stakes drama about the intense rivalry between two Formula 1 drivers and their journey to achieve greatness.",
+    "image": "https://lh3.googleusercontent.com/proxy/V-hIR8GvjktUTIMtje8McWWuZG5o-U1omCLv0mDpJbRX6w2m-wgKAGA95o_sD3hAplP8CgUQnnIr8KHfz9ozLi_K4jSoTeL5vimXimG7AEGvytZ1Mwl2qKf8FCRCMiPWB1gtNn7s79f7",
+    "director": "Joseph Kosinski",
+    "cast": ["Brad Pitt", "Damson Idris", "Aaron Taylor-Johnson"]
+},
+{
+    "title": "Rush",
+    "year": 2013,
+    "rating": 8.1,
+    "genre": "Action, Biography, Drama",
+    "description": "The rivalry between Formula One drivers James Hunt and Niki Lauda in the 1970s, culminating in the 1976 season.",
+    "image": "https://m.media-amazon.com/images/M/MV5BMTZhOGQxM2ItNGQyYy00YzE5LWI5MjMtNmMzNGQzNDE1OTUzXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    "director": "Ron Howard",
+    "cast": ["Chris Hemsworth", "Daniel Brühl", "Olivia Wilde"]
+},
+{
+    "title": "Apollo 13",
+    "year": 1995,
+    "rating": 8.4,
+    "genre": "Adventure, Drama, History",
+    "description": "The true story of the Apollo 13 mission to the moon, and the heroic efforts to bring the astronauts safely back after a life-threatening accident.",
+    "image": "https://m.media-amazon.com/images/M/MV5BMGZmNGY1OTAtNjFkYS00MjcyLWFlZjUtYzEyMDllZGZhMzM3XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    "director": "Ron Howard",
+    "cast": ["Tom Hanks", "Kevin Bacon", "Bill Paxton"]
+},
+{
+    "title": "The Lord of the Rings: The Fellowship of the Ring",
+    "year": 2001,
+    "rating": 8.8,
+    "genre": "Adventure, Drama, Fantasy",
+    "description": "A young hobbit, Frodo, is tasked with destroying a powerful artifact to prevent the dark lord Sauron from ruling Middle-earth.",
+    "image": "https://resizing.flixster.com/-XZAfHZM39UwaGJIFWKAE8fS0ak=/v3/t/assets/p28828_p_v8_ao.jpg",
+    "director": "Peter Jackson",
+    "cast": ["Elijah Wood", "Ian McKellen", "Viggo Mortensen"]
+},
+{
+    "title": "8 Mile",
+    "year": 2002,
+    "rating": 7.1,
+    "genre": "Drama, Music",
+    "description": "A young rapper from Detroit struggles to find his voice and rise above the hardships of his environment to achieve success in the music industry.",
+    "image": "https://resizing.flixster.com/-XZAfHZM39UwaGJIFWKAE8fS0ak=/v3/t/assets/p29400_p_v8_ax.jpg",
+    "director": "Curtis Hanson",
+    "cast": ["Eminem", "Brittany Murphy", "Mekhi Phifer"]
+},
+{
+    "title": "Knives Out",
+    "year": 2019,
+    "rating": 7.9,
+    "genre": "Comedy, Crime, Drama",
+    "description": "A detective investigates the death of a patriarch of an eccentric, combative family.",
+    "image": "https://m.media-amazon.com/images/M/MV5BZDU5ZTRkYmItZjg0Mi00ZTQwLThjMWItNWM3MTMxMzVjZmVjXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    "director": "Rian Johnson",
+    "cast": ["Daniel Craig", "Chris Evans", "Ana de Armas"]
+},
+{
+    "title": "Star Wars: Episode IV - A New Hope",
+    "year": 1977,
+    "rating": 8.6,
+    "genre": "Action, Adventure, Fantasy",
+    "description": "A young farmer, Luke Skywalker, joins forces with rebels to defeat the Empire's ultimate weapon, the Death Star.",
+    "image": "https://upload.wikimedia.org/wikipedia/en/8/87/StarWarsMoviePoster1977.jpg",
+    "director": "George Lucas",
+    "cast": ["Mark Hamill", "Harrison Ford", "Carrie Fisher"]
+},
+{
+    "title": "Star Wars: Episode V - The Empire Strikes Back",
+    "year": 1980,
+    "rating": 8.7,
+    "genre": "Action, Adventure, Fantasy",
+    "description": "The rebels are pursued by the Empire after their defeat in the previous film. Luke Skywalker trains with Yoda to become a Jedi, while Han Solo and Leia are pursued by Darth Vader.",
+    "image": "https://static.wikia.nocookie.net/starwars/images/4/4b/Empire-at-40-poster.jpg/revision/latest?cb=20201009225814",
+    "director": "Irvin Kershner",
+    "cast": ["Mark Hamill", "Harrison Ford", "Carrie Fisher"]
+},
+{
+    "title": "Star Wars: Episode VI - Return of the Jedi",
+    "year": 1983,
+    "rating": 8.3,
+    "genre": "Action, Adventure, Fantasy",
+    "description": "Luke Skywalker, Han Solo, and Princess Leia fight to rescue Han from Jabba the Hutt and defeat the Empire with the help of the Rebel Alliance.",
+    "image": "https://lumiere-a.akamaihd.net/v1/images/rotj-in-theaters-40th-celebration-onesheet_1e34d642.jpeg?region=0,0,729,1080",
+    "director": "Richard Marquand",
+    "cast": ["Mark Hamill", "Harrison Ford", "Carrie Fisher"]
+},
+{
+    "title": "Star Wars: Episode I - The Phantom Menace",
+    "year": 1999,
+    "rating": 6.5,
+    "genre": "Action, Adventure, Fantasy",
+    "description": "Jedi Master Qui-Gon Jinn and his apprentice, Obi-Wan Kenobi, discover a young boy, Anakin Skywalker, who is strong with the Force, and battle the Sith.",
+    "image": "https://i0.wp.com/musingsofamiddleagedgeek.blog/wp-content/uploads/2019/04/bf8535b905786bb0684a4f45e96829ca.jpg?resize=1200%2C1200&ssl=1",
+    "director": "George Lucas",
+    "cast": ["Liam Neeson", "Ewan McGregor", "Natalie Portman"]
+},
+{
+    "title": "Star Wars: Episode II - Attack of the Clones",
+    "year": 2002,
+    "rating": 6.6,
+    "genre": "Action, Adventure, Fantasy",
+    "description": "Anakin Skywalker and Padmé Amidala face growing tension as the Republic descends into war, while Anakin's path toward the dark side is beginning.",
+    "image": "https://images.moviesanywhere.com/0c0ccd955dd1ea84822c1ce41bc4f389/c0957716-73bb-43d1-b90b-88955f89dad3.jpg",
+    "director": "George Lucas",
+    "cast": ["Hayden Christensen", "Ewan McGregor", "Natalie Portman"]
+},
+{
+    "title": "Star Wars: Episode III - Revenge of the Sith",
+    "year": 2005,
+    "rating": 8.0,
+    "genre": "Action, Adventure, Fantasy",
+    "description": "Anakin Skywalker becomes Darth Vader after being manipulated by the Emperor, leading to the downfall of the Jedi Order.",
+    "image": "https://m.media-amazon.com/images/M/MV5BNTc4MTc3NTQ5OF5BMl5BanBnXkFtZTcwOTg0NjI4NA@@._V1_FMjpg_UX1000_.jpg",
+    "director": "George Lucas",
+    "cast": ["Ewan McGregor", "Hayden Christensen", "Natalie Portman"]
+},
+{
+    "title": "Star Wars: Episode VII - The Force Awakens",
+    "year": 2015,
+    "rating": 7.8,
+    "genre": "Action, Adventure, Fantasy",
+    "description": "A new threat, the First Order, arises from the ashes of the Empire, and a young scavenger named Rey is thrust into the battle to stop them.",
+    "image": "https://m.media-amazon.com/images/M/MV5BOTAzODEzNDAzMl5BMl5BanBnXkFtZTgwMDU1MTgzNzE@._V1_FMjpg_UX1000_.jpg",
+    "director": "J.J. Abrams",
+    "cast": ["Daisy Ridley", "John Boyega", "Oscar Isaac"]
+},
+{
+    "title": "Star Wars: Episode VIII - The Last Jedi",
+    "year": 2017,
+    "rating": 7.0,
+    "genre": "Action, Adventure, Fantasy",
+    "description": "Rey continues her training with Luke Skywalker while the Resistance tries to survive the onslaught of the First Order.",
+    "image": "https://m.media-amazon.com/images/M/MV5BMjQ1MzcxNjg4N15BMl5BanBnXkFtZTgwNzgwMjY4MzI@._V1_FMjpg_UX1000_.jpg",
+    "director": "Rian Johnson",
+    "cast": ["Daisy Ridley", "Mark Hamill", "Carrie Fisher"]
+},
+{
+    "title": "Star Wars: Episode IX - The Rise of Skywalker",
+    "year": 2019,
+    "rating": 6.5,
+    "genre": "Action, Adventure, Fantasy",
+    "description": "The surviving members of the resistance face the First Order once again, and the legendary conflict between the Jedi and the Sith reaches its peak bringing the Skywalker saga to its end.",
+    "image": "https://m.media-amazon.com/images/M/MV5BODg5ZTNmMTUtYThlNy00NjljLWE0MGUtYmQ1NDg4NWU5MjQ1XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    "director": "J.J. Abrams",
+    "cast": ["Daisy Ridley", "John Boyega", "Oscar Isaac"]
+},
+{
+    "title": "Star Trek: The Motion Picture",
+    "year": 1979,
+    "rating": 6.4,
+    "genre": "Action, Adventure, Mystery",
+    "description": "The crew of the Starship Enterprise is called to investigate a mysterious alien vessel approaching Earth.",
+    "image": "https://m.media-amazon.com/images/M/MV5BNjcyMmVmMTItNTA3Yy00NGJjLTlmYjQtZWQ3ZjcyNmU5NDQ2XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    "director": "Robert Wise",
+    "cast": ["William Shatner", "Leonard Nimoy", "DeForest Kelley"]
+},
+{
+    "title": "Star Trek II: The Wrath of Khan",
+    "year": 1982,
+    "rating": 7.7,
+    "genre": "Action, Adventure, Sci-Fi",
+    "description": "Captain Kirk must face his old nemesis Khan, who is bent on revenge against him and his crew.",
+    "image": "https://m.media-amazon.com/images/M/MV5BOTFkZDY5NWQtMjY4Yy00OThiLTk3YjQtMDdhYTllMTI4MTdiXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+    "director": "Nicolas Meyer",
+    "cast": ["William Shatner", "Leonard Nimoy", "Ricardo Montalbán"]
+},
+{
+    "title": "Star Trek III: The Search for Spock",
+    "year": 1984,
+    "rating": 6.7,
+    "genre": "Action, Adventure, Sci-Fi",
+    "description": "The crew of the Starship Enterprise is called upon to rescue Spock's body after he dies and is later resurrected.",
+    "image": "https://i.ebayimg.com/images/g/yEEAAOSwnp5hpBSw/s-l1200.jpg",
+    "director": "Leonard Nimoy",
+    "cast": ["William Shatner", "Leonard Nimoy", "DeForest Kelley"]
+},
+{
+    "title": "Rogue One: A Star Wars Story",
+    "year": 2016,
+    "rating": 7.8,
+    "genre": "Action, Adventure, Sci-Fi",
+    "description": "A group of rebel spies steal the plans to the Death Star, the Empire's ultimate weapon, in a mission to stop the Galactic Empire from ruling the galaxy.",
+    "image": "https://m.media-amazon.com/images/M/MV5BMjEwMzMxODIzOV5BMl5BanBnXkFtZTgwNzg3OTAzMDI@._V1_FMjpg_UX1000_.jpg",
+    "director": "Gareth Edwards",
+    "cast": ["Felicity Jones", "Diego Luna", "Ben Mendelsohn"]
+},
+{
+    "title": "Solo: A Star Wars Story",
+    "year": 2018,
+    "rating": 6.9,
+    "genre": "Action, Adventure, Sci-Fi",
+    "description": "During an adventure into a dark criminal underworld, Han Solo meets his future co-pilot Chewbacca and encounters Lando Calrissian years before joining the Rebellion.",
+    "image": "https://images.moviesanywhere.com/b37f471bd283e341993ece020d5161ce/3dafe1f1-8d6a-4d87-bb6d-0b66430b4ef4.jpg",
+    "director": "Ron Howard",
+    "cast": ["Alden Ehrenreich", "Woody Harrelson", "Emilia Clarke"]
+},
+{
+    "title": "The Creator",
+    "year": 2023,
+    "rating": 7.2,
+    "genre": "Action, Adventure, Sci-Fi",
+    "description": "In the future, a soldier is tasked with hunting down the Creator, the elusive architect of advanced artificial intelligence who has developed a weapon capable of ending the war.",
+    "image": "https://m.media-amazon.com/images/I/81+JRa6G+3L._AC_UF1000,1000_QL80_.jpg",
+    "director": "Gareth Edwards",
+    "cast": ["John David Washington", "Gemma Chan", "Allison Janney"]
+},
+{
+    "title": "The Martian",
+    "year": 2015,
+    "rating": 8.0,
+    "genre": "Adventure, Drama, Sci-Fi",
+    "description": "An astronaut is left behind on Mars after his crew presumes him dead. Struggling to survive, he uses his ingenuity to communicate with NASA and plan his escape.",
+    "image": "https://m.media-amazon.com/images/M/MV5BMTc2MTQ3MDA1Nl5BMl5BanBnXkFtZTgwODA3OTI4NjE@._V1_FMjpg_UX1000_.jpg",
+    "director": "Ridley Scott",
+    "cast": ["Matt Damon", "Jessica Chastain", "Kristen Wiig"]
+},
+   ];
+
+        // Movie card template
+        function movieTemplate(movie) {
+            return `
+                <div class="movie-card" onclick="openModal('${movie.title}')">
+                    <img src="${movie.image}" class="movie-poster" alt="${movie.title}">
+                    <div class="movie-info">
+                        <h3 class="movie-title">${movie.title}</h3>
+                        <div class="movie-rating">
+                            ★ ${movie.rating}
+                            <span class="movie-year">${movie.year}</span>
+                        </div>
+                        <div class="movie-actions">
+                            <button class="btn btn-primary">Add to Watchlist</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Modal functions
+        function openModal(title) {
+            const movie = movies.find(m => m.title === title);
+            const modalContent = `
+                <h2>${movie.title} (${movie.year})</h2>
+                <div class="modal-details">
+                    <img src="${movie.image}" style="max-width: 300px">
+                    <div>
+                        <p><strong>Director:</strong> ${movie.director}</p>
+                        <p><strong>Cast:</strong> ${movie.cast.join(', ')}</p>
+                        <p>${movie.description}</p>
+                        <div class="user-rating">
+                            <h3>Your Rating:</h3>
+                            <div class="stars">
+                                ${[1,2,3,4,5].map(i => 
+                                    `<span class="star" data-rating="${i}" onclick="rateMovie('${movie.title}', ${i})">★</span>`
+                                ).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modalContent').innerHTML = modalContent;
+            document.getElementById('movieModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('movieModal').style.display = 'none';
+        }
+
+        // Rating system
+        function rateMovie(title, rating) {
+            const movie = movies.find(m => m.title === title);
+            movie.userRating = rating;
+            localStorage.setItem(title, rating);
+            updateStars();
+        }
+
+        // Filter and sort functionality
+        function updateMovies() {
+            const searchTerm = document.getElementById('search').value.toLowerCase();
+            const sortBy = document.getElementById('sort').value;
+            
+            let filtered = movies.filter(movie => 
+                movie.title.toLowerCase().includes(searchTerm) ||
+                movie.genre.toLowerCase().includes(searchTerm) ||
+                movie.cast.some(actor => actor.toLowerCase().includes(searchTerm))
+            );
+
+            filtered.sort((a, b) => {
+                if (sortBy === 'rating') return b.rating - a.rating;
+                if (sortBy === 'title') return a.title.localeCompare(b.title);
+                if (sortBy === 'year') return b.year - a.year;
+            });
+
+            document.getElementById('movieContainer').innerHTML = 
+                filtered.map(movieTemplate).join('');
+        }
+
+        // Event listeners
+        document.getElementById('search').addEventListener('input', updateMovies);
+        document.getElementById('sort').addEventListener('change', updateMovies);
+
+        // Initial load
+        updateMovies();
+    </script>
+</body>
+</html>
